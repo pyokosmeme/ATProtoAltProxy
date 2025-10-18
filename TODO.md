@@ -7,19 +7,19 @@ A living task list to get from zero → usable → hardened.
 ---
 
 ## Phase 0 — Repo & Scaffolding
-- [ ] Initialize repo structure (`src/server.ts`, `src/addon/*`, Dockerfile, README, DESIGN, TODO)
-- [ ] Choose license (likely MIT) and `.editorconfig`
-- [ ] Setup TypeScript, ts-node/dev server, ESLint/Prettier
-- [ ] Add minimal Express server + health check (`/healthz`)
+- [x] Initialize repo structure (`src/server.ts`, `src/addon/*`, Dockerfile, README, DESIGN, TODO)
+- [x] Choose license (likely MIT) and `.editorconfig`
+- [x] Setup TypeScript, ts-node/dev server, ESLint/Prettier
+- [x] Add minimal Express server + health check (`/healthz`)
 
 ## Phase 1 — Proxy MVP (Cloud Run)
-- [ ] Implement **Basic Auth** middleware (401 with `WWW-Authenticate`)
-- [ ] Hardcode/ENV `UPSTREAM_HOST` (e.g., `blacksky.community`)
-- [ ] Pass-through for non-HTML; transform only `text/html`
-- [ ] **CSP rewrite**: allow self + official Bluesky domains; block 3rd-party scripts
-- [ ] Inject `<script src="/_addon.js">` before `</body>`
-- [ ] Add headers: `X-Robots-Tag`, `Referrer-Policy`, `Permissions-Policy`
-- [ ] No request body logging; confirm Cloud Run default access logs only
+- [x] Implement **Basic Auth** middleware (401 with `WWW-Authenticate`)
+- [x] Hardcode/ENV `UPSTREAM_HOST` (e.g., `blacksky.community`)
+- [x] Pass-through for non-HTML; transform only `text/html`
+- [x] **CSP rewrite**: allow self + official Bluesky domains; block 3rd-party scripts
+- [x] Inject `<script src="/_addon.js">` before `</body>`
+- [x] Add headers: `X-Robots-Tag`, `Referrer-Policy`, `Permissions-Policy`
+- [x] No request body logging; confirm Cloud Run default access logs only
 - [ ] Build & run locally
 
 ## Phase 2 — Addon MVP
