@@ -1,6 +1,5 @@
 import express, { NextFunction, Request, Response } from "express";
 import fetch, { Headers } from "node-fetch";
-import { Readable } from "node:stream";
 import { buildCsp } from "./csp.js";
 import { injectAddon } from "./inject.js";
 import { addonBundle } from "./addon/bundle.js";
@@ -22,10 +21,10 @@ function unauthorized(res: Response): Response {
 }
 
 function parseBasicAuth(header: unknown): { name: string; pass: string } | null {
-  if (!header || Array.isArray(header)) {
+  if (!header || Array.isArray(header) || typeof header !== "string") {
     return null;
   }
-  const value = header.toString();
+  const value = header;
   if (!value.startsWith("Basic ")) {
     return null;
   }
@@ -47,13 +46,22 @@ function parseBasicAuth(header: unknown): { name: string; pass: string } | null 
 }
 
 function authMiddleware(req: Request, res: Response, next: NextFunction): void {
-  const credentials = parseBasicAuth(req.headers.authorization);
+  const { authorization } = req.headers;
+  if (!authorization) {
+    console.warn("Missing basic auth header", { ip: req.ip });
+    unauthorized(res);
+    return;
+  }
+
+  const credentials = parseBasicAuth(authorization);
   if (!credentials) {
+    console.warn("Failed to parse basic auth header", { ip: req.ip });
     unauthorized(res);
     return;
   }
   const { name, pass } = credentials;
   if (name !== basicUser || pass !== basicPass) {
+    console.warn("Invalid basic auth credentials", { ip: req.ip, user: name });
     unauthorized(res);
     return;
   }
@@ -93,7 +101,7 @@ async function proxyHtml(req: Request, res: Response): Promise<void> {
     res.status(upstreamResponse.status);
     const body = upstreamResponse.body;
     if (body) {
-      Readable.fromWeb(body as unknown as any).pipe(res);
+      body.pipe(res);
       return;
     }
     res.end();
@@ -106,6 +114,9 @@ async function proxyHtml(req: Request, res: Response): Promise<void> {
   headersToSend.set("x-robots-tag", "noindex, nofollow");
   headersToSend.set("referrer-policy", "strict-origin-when-cross-origin");
   headersToSend.set("permissions-policy", "geolocation=(), microphone=(), camera=()");
+  for (const header of ["content-length", "content-encoding", "transfer-encoding"]) {
+    headersToSend.delete(header);
+  }
 
   headersToSend.forEach((value, key) => {
     res.setHeader(key, value);
@@ -130,16 +141,17 @@ app.get("/healthz", (_req, res) => {
 
 app.get("/_addon.js", authMiddleware, (_req, res) => {
   res.type("application/javascript");
+  res.set("Cache-Control", "no-store");
   res.send(addonBundle);
 });
 
-app.use(authMiddleware, async (req, res) => {
-  try {
-    await proxyHtml(req, res);
-  } catch (error) {
+app.use(authMiddleware, (req, res) => {
+  proxyHtml(req, res).catch((error) => {
     console.error("Proxy error", error);
-    res.status(502).send("Upstream fetch failed");
-  }
+    if (!res.headersSent) {
+      res.status(502).send("Upstream fetch failed");
+    }
+  });
 });
 
 const port = Number.parseInt(process.env.PORT ?? "8787", 10);
