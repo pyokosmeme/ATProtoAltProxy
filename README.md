@@ -2,7 +2,7 @@
 
 ## Bluesky Reverse-Proxy Injector (Personal)
 
-Serve an upstream Bluesky client (e.g., Blacksky) at your own **private URL** and inject a tiny addon that enables **multi-account posting** without switching accounts. Intended for **personal use** and gated with **Basic Auth** (or Google IAP).
+Serve an upstream Bluesky client (e.g., Bluesky, Deer Social, Blacksky) at your own **private URL** and inject a tiny addon that enables **multi-account posting** without switching accounts. Intended for **personal use** and gated with **Basic Auth** (or Google IAP).
 
 ### What it does
 - Proxies only **HTML** and injects `/_addon.js`
