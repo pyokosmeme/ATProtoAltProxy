@@ -20,7 +20,7 @@ A living task list to get from zero → usable → hardened.
 - [x] Inject `<script src="/_addon.js">` before `</body>`
 - [x] Add headers: `X-Robots-Tag`, `Referrer-Policy`, `Permissions-Policy`
 - [x] No request body logging; confirm Cloud Run default access logs only
-- [ ] Build & run locally
+- [x] Build & run locally
 
 ## Phase 2 — Addon MVP
 - [x] Minimal floating UI: “Compose (alts)”, account dropdown, textarea
@@ -32,10 +32,10 @@ A living task list to get from zero → usable → hardened.
 - [x] Keyboard shortcut (`c`) to focus composer
 
 ## Phase 3 — Security & Storage
-- [ ] Encrypt vault with Web Crypto (AES-GCM) + PBKDF2 passphrase
+- [x] Encrypt vault with Web Crypto (AES-GCM) + PBKDF2 passphrase
 - [ ] Optional WebAuthn device-unlock (wrap vault key)
-- [ ] “Lock now” and “Clear vault” controls
-- [ ] Use **App Passwords** only; document this in UI
+- [x] “Lock now” and “Clear vault” controls
+- [x] Use **App Passwords** only; document this in UI
 
 ## Phase 4 — Posting Features
 - [ ] Media upload: `com.atproto.repo.uploadBlob` (images); preview thumbnails
