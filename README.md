@@ -8,7 +8,8 @@ Serve an upstream Bluesky client (e.g., Bluesky, Deer Social, Blacksky) at your 
 - Proxies only **HTML** and injects `/_addon.js`
 - Leaves **API/XRPC** calls to go **directly** from your browser to the PDS/Bluesky domains
 - Addon provides:
-  - **Account vault** (IndexedDB + optional passphrase/WebAuthn)
+  - **Account vault** (IndexedDB + AES-GCM passphrase)
+  - Quick security controls: “Unlock vault”, “Lock now”, “Clear vault”
   - **Account dropdown** and composer
   - **Quote via pasted URL** (resolves `{uri,cid}` and posts as the selected alt)
   - **Token refresh** on 401
@@ -111,7 +112,7 @@ npm run dev
 
 ## Addon Behavior (Overview)
 - UI: “Compose (alts)” button, account dropdown, textarea, optional “Quote URL”  
-- Storage: IndexedDB vault; optional passphrase or WebAuthn unlock  
+- Storage: IndexedDB vault with AES-GCM passphrase unlock
 - Post: `com.atproto.repo.createRecord` with selected account; refresh on 401  
 - Quote: `app.bsky.feed.getPosts` to resolve `{uri,cid}`, embed `app.bsky.embed.record`
 
