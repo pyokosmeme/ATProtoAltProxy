@@ -14,6 +14,26 @@ export const addonBundle = String.raw`(function () {
   const PBKDF2_ITERATIONS = 150000;
   const MAX_ATTACHMENTS = 4;
   const POST_CHARACTER_LIMIT = 300;
+  const POST_KEYWORDS = ["post", "compose", "new post", "skeet"];
+  const QUOTE_KEYWORDS = ["quote", "quote post"];
+  const POST_BUTTON_SELECTORS = [
+    'button[data-testid="composer-post-button"]',
+    'button[data-testid="composerPublishButton"]',
+    'button[data-testid="primaryPostButton"]',
+    'button[aria-label*="Compose"]',
+    'button[aria-label="Post"]',
+    'a[href="/compose"]',
+    'a[href^="/compose"]'
+  ];
+  const QUOTE_BUTTON_SELECTORS = [
+    'button[data-testid="quote-button"]',
+    'button[data-testid="quotePostButton"]',
+    'button[data-testid="quote-post-action"]',
+    '[role="menuitem"][data-testid="quote"]',
+    '[role="menuitem"][data-testid="quote-post"]',
+    'button[aria-label*="Quote"]',
+    'a[aria-label*="Quote"]'
+  ];
 
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
@@ -1040,9 +1060,11 @@ export const addonBundle = String.raw`(function () {
   root.id = UI_ID;
   root.style.position = "fixed";
   root.style.right = "1.25rem";
-  root.style.bottom = "1.25rem";
+  root.style.top = "1.25rem";
+  root.style.bottom = "auto";
   root.style.width = "340px";
   root.style.maxWidth = "90vw";
+  root.style.maxHeight = "calc(100vh - 2.5rem)";
   root.style.background = "rgba(22, 24, 35, 0.95)";
   root.style.color = "white";
   root.style.padding = "1rem";
@@ -1054,6 +1076,7 @@ export const addonBundle = String.raw`(function () {
   root.style.display = "flex";
   root.style.flexDirection = "column";
   root.style.gap = "0.75rem";
+  root.style.overflowY = "auto";
 
   const heading = document.createElement("div");
   heading.style.display = "flex";
@@ -1299,9 +1322,349 @@ export const addonBundle = String.raw`(function () {
   root.appendChild(fileInput);
   document.body.appendChild(root);
 
+  const responsiveStyles = document.createElement("style");
+  responsiveStyles.id = UI_ID + "-styles";
+  const responsiveCss = [
+    "#" + UI_ID + "::-webkit-scrollbar{width:8px;height:8px;}",
+    "#" + UI_ID + "::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:999px;}",
+    "@media (max-width: 1200px){#" + UI_ID + "{right:1rem;}}",
+    "@media (max-width: 900px){#" + UI_ID + "{right:0.75rem;width:min(360px,calc(100vw - 1.5rem));}}",
+    "@media (max-width: 720px){#" + UI_ID + "{left:0.75rem;right:0.75rem;top:auto;bottom:0.75rem;width:auto;max-width:none;max-height:calc(100vh - 1.5rem);}}",
+    "@media (max-height: 600px){#" + UI_ID + "{top:0.75rem;bottom:0.75rem;}}"
+  ].join("");
+  responsiveStyles.textContent = responsiveCss;
+  if (document.head) {
+    document.head.appendChild(responsiveStyles);
+  } else {
+    document.body.appendChild(responsiveStyles);
+  }
+
   function setStatus(message, tone) {
     status.textContent = message || "";
     status.style.color = tone === "error" ? "#fca5a5" : tone === "success" ? "#bbf7d0" : "rgba(255,255,255,0.85)";
+  }
+
+  function ensureComposerVisible() {
+    if (collapseButton.getAttribute("aria-expanded") !== "true") {
+      collapseButton.setAttribute("aria-expanded", "true");
+      collapseButton.textContent = "−";
+      body.style.display = "flex";
+    }
+    if (root.scrollIntoView) {
+      try {
+        root.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      } catch (error) {
+        root.scrollIntoView();
+      }
+    }
+  }
+
+  function getEventPath(event) {
+    if (event.composedPath) {
+      return event.composedPath();
+    }
+    const path = [];
+    let node = event.target;
+    while (node) {
+      path.push(node);
+      node = node.parentNode;
+    }
+    path.push(window);
+    return path;
+  }
+
+  function matchesSelectorList(element, selectors) {
+    if (!element || typeof element.matches !== "function") {
+      return false;
+    }
+    for (let i = 0; i < selectors.length; i += 1) {
+      const selector = selectors[i];
+      try {
+        if (element.matches(selector)) {
+          return true;
+        }
+      } catch (error) {
+      }
+    }
+    return false;
+  }
+
+  function elementHasKeyword(element, keywords) {
+    if (!element) {
+      return false;
+    }
+    let label = "";
+    if (typeof element.getAttribute === "function") {
+      label = (element.getAttribute("aria-label") || element.getAttribute("title") || "").toLowerCase();
+      if (label) {
+        for (let i = 0; i < keywords.length; i += 1) {
+          if (label.indexOf(keywords[i]) !== -1) {
+            return true;
+          }
+        }
+      }
+    }
+    const text = (element.textContent || "").toLowerCase();
+    for (let j = 0; j < keywords.length; j += 1) {
+      if (text.indexOf(keywords[j]) !== -1) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function matchesAction(element, selectors, keywords) {
+    if (!element) {
+      return null;
+    }
+    if (matchesSelectorList(element, selectors)) {
+      return element;
+    }
+    if (element.closest) {
+      for (let i = 0; i < selectors.length; i += 1) {
+        try {
+          const match = element.closest(selectors[i]);
+          if (match) {
+            return match;
+          }
+        } catch (error) {
+        }
+      }
+    }
+    if (keywords && elementHasKeyword(element, keywords)) {
+      return element;
+    }
+    return null;
+  }
+
+  function normalizePostUrl(candidate) {
+    if (!candidate) {
+      return null;
+    }
+    const trimmed = candidate.trim();
+    if (!trimmed) {
+      return null;
+    }
+    if (trimmed.indexOf("at://") === 0) {
+      const parts = trimmed.slice(5).split("/");
+      if (parts.length >= 3 && parts[1] === "app.bsky.feed.post") {
+        const handle = parts[0];
+        const rkey = parts[2];
+        if (handle && handle.indexOf("did:") !== 0 && rkey) {
+          return window.location.origin.replace(/\/$/, "") + "/profile/" + handle + "/post/" + rkey;
+        }
+      }
+      return null;
+    }
+    try {
+      const url = new URL(trimmed, window.location.origin);
+      const path = url.pathname || "";
+      const looksLikePost = /\/profile\/[A-Za-z0-9._:-]+\/post\/[A-Za-z0-9._:-]+/.test(path) || /\/posts\/[A-Za-z0-9._:-]+/.test(path) || /\/users\/[A-Za-z0-9._:-]+\/posts\/[A-Za-z0-9._:-]+/.test(path);
+      if (looksLikePost) {
+        url.hash = "";
+        return url.toString();
+      }
+    } catch (error) {
+    }
+    return null;
+  }
+
+  function extractPostUrlFromElement(element) {
+    if (!element) {
+      return null;
+    }
+    const candidates = [];
+    if (typeof element.getAttribute === "function") {
+      const directHref = element.getAttribute("href");
+      if (directHref) {
+        candidates.push(directHref);
+      }
+      const dataHref = element.getAttribute("data-href");
+      if (dataHref) {
+        candidates.push(dataHref);
+      }
+    }
+    const dataKeys = ["href", "url", "uri", "link", "permalink", "postUrl", "quoteUrl", "target"];
+    if (element.dataset) {
+      for (let i = 0; i < dataKeys.length; i += 1) {
+        const value = element.dataset[dataKeys[i]];
+        if (value) {
+          candidates.push(value);
+        }
+      }
+      if (element.dataset.atUri) {
+        candidates.push(element.dataset.atUri);
+      }
+    }
+    if (element.tagName === "A" && element.href) {
+      candidates.push(element.href);
+    }
+    for (let j = 0; j < candidates.length; j += 1) {
+      const normalized = normalizePostUrl(candidates[j]);
+      if (normalized) {
+        return normalized;
+      }
+    }
+    if (element.querySelectorAll) {
+      const anchors = element.querySelectorAll('a[href], [data-href], [data-url], [data-permalink]');
+      for (let k = 0; k < anchors.length && k < 6; k += 1) {
+        const nested = extractPostUrlFromElement(anchors[k]);
+        if (nested) {
+          return nested;
+        }
+      }
+    }
+    return null;
+  }
+
+  function findPostUrl(eventPath) {
+    for (let i = 0; i < eventPath.length; i += 1) {
+      const element = eventPath[i];
+      if (!element || element === window || element === document) {
+        continue;
+      }
+      const fromElement = extractPostUrlFromElement(element);
+      if (fromElement) {
+        return fromElement;
+      }
+      if (element.closest) {
+        const container = element.closest('article, [role="article"], [data-testid*="post"], [data-testid*="feed-item"], [data-testid*="feedItem"]');
+        if (container && container !== element) {
+          const fromContainer = extractPostUrlFromElement(container);
+          if (fromContainer) {
+            return fromContainer;
+          }
+        }
+      }
+      if (element === root) {
+        break;
+      }
+    }
+    return null;
+  }
+
+  function captureSiteComposerText() {
+    const selectors = [
+      'textarea[data-testid="composer-textarea"]',
+      'textarea[data-testid="composerTextArea"]',
+      'textarea[aria-label*="Compose"]',
+      'textarea[placeholder*="What\'s up"]'
+    ];
+    for (let i = 0; i < selectors.length; i += 1) {
+      let field = null;
+      try {
+        field = document.querySelector(selectors[i]);
+      } catch (error) {
+      }
+      if (field && field.value) {
+        return field.value;
+      }
+    }
+    return "";
+  }
+
+  function handleQuoteIntercept(eventPath, trigger) {
+    const postUrl = findPostUrl(eventPath);
+    let resolvedUrl = postUrl;
+    if (!resolvedUrl) {
+      const manual = window.prompt("Paste the post URL to quote:");
+      if (!manual) {
+        setStatus("Quote cancelled", "error");
+        return;
+      }
+      resolvedUrl = manual.trim();
+      if (!resolvedUrl) {
+        setStatus("Quote cancelled", "error");
+        return;
+      }
+    }
+    quoteInput.value = resolvedUrl;
+    if (replyInput) {
+      replyInput.value = "";
+    }
+    persistDraftForCurrent();
+    setStatus(postUrl ? "Quote captured from site" : "Quote URL added", postUrl ? "success" : "info");
+    ensureComposerVisible();
+    if (composer) {
+      composer.focus();
+    }
+    if (trigger && typeof trigger.blur === "function") {
+      trigger.blur();
+    }
+    if (trigger && trigger.closest) {
+      const menu = trigger.closest('[role="menu"]');
+      if (menu && menu.style) {
+        menu.style.display = "none";
+      }
+    }
+  }
+
+  function handlePostIntercept() {
+    const text = captureSiteComposerText();
+    if (text) {
+      composer.value = text;
+      updateCharacterCount();
+    }
+    ensureComposerVisible();
+    if (text) {
+      setStatus("Draft copied. Post with your selected account below.", "info");
+    } else {
+      setStatus("Compose with your selected account below.", "info");
+    }
+    if (composer) {
+      composer.focus();
+    }
+    persistDraftForCurrent();
+  }
+
+  function interceptSiteClicks(event) {
+    if (event.defaultPrevented) {
+      return;
+    }
+    const path = getEventPath(event);
+    let quoteElement = null;
+    let postElement = null;
+    for (let i = 0; i < path.length; i += 1) {
+      const element = path[i];
+      if (!element || element === window || element === document) {
+        continue;
+      }
+      if (element === root) {
+        break;
+      }
+      if (!quoteElement) {
+        const matchQuote = matchesAction(element, QUOTE_BUTTON_SELECTORS, QUOTE_KEYWORDS);
+        if (matchQuote) {
+          quoteElement = matchQuote;
+        }
+      }
+      if (!postElement) {
+        const matchPost = matchesAction(element, POST_BUTTON_SELECTORS, POST_KEYWORDS);
+        if (matchPost) {
+          postElement = matchPost;
+        }
+      }
+      if (quoteElement && postElement) {
+        break;
+      }
+    }
+    if (quoteElement) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === "function") {
+        event.stopImmediatePropagation();
+      }
+      handleQuoteIntercept(path, quoteElement);
+      return;
+    }
+    if (postElement) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === "function") {
+        event.stopImmediatePropagation();
+      }
+      handlePostIntercept();
+    }
   }
 
   function setBusy(isBusy) {
@@ -1875,6 +2238,8 @@ export const addonBundle = String.raw`(function () {
     }).catch(function () {
     });
   });
+
+  document.addEventListener("click", interceptSiteClicks, true);
 
   document.addEventListener("keydown", function (event) {
     if (event.key === "c" && !event.ctrlKey && !event.metaKey && !event.altKey) {
