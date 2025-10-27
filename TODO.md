@@ -23,13 +23,13 @@ A living task list to get from zero → usable → hardened.
 - [ ] Build & run locally
 
 ## Phase 2 — Addon MVP
-- [ ] Minimal floating UI: “Compose (alts)”, account dropdown, textarea
-- [ ] IndexedDB vault (plain JSON first)
-- [ ] ATProto helpers: `createSession`, `refreshSession`, `createRecord`
-- [ ] Post text as selected account
-- [ ] Quote via URL: resolve `{uri,cid}` using `app.bsky.feed.getPosts` (public read API)
-- [ ] Basic error toasts + success confirmation
-- [ ] Keyboard shortcut (`c`) to focus composer
+- [x] Minimal floating UI: “Compose (alts)”, account dropdown, textarea
+- [x] IndexedDB vault (plain JSON first)
+- [x] ATProto helpers: `createSession`, `refreshSession`, `createRecord`
+- [x] Post text as selected account
+- [x] Quote via URL: resolve `{uri,cid}` using `app.bsky.feed.getPosts` (public read API)
+- [x] Basic error toasts + success confirmation
+- [x] Keyboard shortcut (`c`) to focus composer
 
 ## Phase 3 — Security & Storage
 - [ ] Encrypt vault with Web Crypto (AES-GCM) + PBKDF2 passphrase
