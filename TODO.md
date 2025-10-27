@@ -33,16 +33,16 @@ A living task list to get from zero → usable → hardened.
 
 ## Phase 3 — Security & Storage
 - [x] Encrypt vault with Web Crypto (AES-GCM) + PBKDF2 passphrase
-- [ ] Optional WebAuthn device-unlock (wrap vault key)
+- [x] Optional WebAuthn device-unlock (wrap vault key)
 - [x] “Lock now” and “Clear vault” controls
 - [x] Use **App Passwords** only; document this in UI
 
 ## Phase 4 — Posting Features
-- [ ] Media upload: `com.atproto.repo.uploadBlob` (images); preview thumbnails
-- [ ] Facets (links/mentions) and basic character counter
-- [ ] Reply flow: paste a post URL and set `reply` block
-- [ ] Switch account retains compose text (drafts per account)
-- [ ] Token refresh retry-once logic; surface refresh failures
+- [x] Media upload: `com.atproto.repo.uploadBlob` (images); preview thumbnails
+- [x] Facets (links/mentions) and basic character counter
+- [x] Reply flow: paste a post URL and set `reply` block
+- [x] Switch account retains compose text (drafts per account)
+- [x] Token refresh retry-once logic; surface refresh failures
 
 ## Phase 5 — Integration Quality
 - [ ] Intercept site “Post/Quote” buttons: capturing click listener + robust selectors
